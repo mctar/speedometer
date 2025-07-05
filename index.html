@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Speedometer Prototype</title>
+  <style>
+    body { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      height: 100vh; 
+      margin: 0; 
+      font-family: sans-serif; 
+      background: #111; 
+      color: #fff;
+    }
+    h1 { margin-bottom: 1rem; }
+    .speed { font-size: 2rem; margin: 0.5rem 0; }
+  </style>
+</head>
+<body>
+  <h1>Speed (live)</h1>
+  <div id="kph" class="speed">-- km/h</div>
+  <div id="mph" class="speed">-- mph</div>
+  <div id="knots" class="speed">-- kt</div>
+
+  <script>
+    // helper: calculate distance (meters) between two lat/lon pairs
+    function haversine([lat1, lon1], [lat2, lon2]) {
+      const toRad = x => x * Math.PI/180;
+      const R = 6371000; // Earth radius in m
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat/2)**2 
+              + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))
+              * Math.sin(dLon/2)**2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    let lastPos = null;
+
+    if ('geolocation' in navigator) {
+      navigator.geolocation.watchPosition(pos => {
+        const { latitude, longitude, timestamp } = pos.coords ? 
+          { latitude: pos.coords.latitude, longitude: pos.coords.longitude } :
+          { latitude: pos.latitude, longitude: pos.longitude };
+        const now = pos.timestamp;
+
+        if (lastPos) {
+          const dt = (now - lastPos.time) / 1000;        // seconds
+          const dist = haversine(
+            [lastPos.lat, lastPos.lon], 
+            [latitude, longitude]
+          );                                             // meters
+          const mps = dist / dt;                         // m/s
+          
+          // convert
+          const kph  = mps * 3.6;
+          const mph  = mps * 2.23694;
+          const knots= mps * 1.94384;
+          
+          document.getElementById('kph').textContent   = kph.toFixed(1)  + ' km/h';
+          document.getElementById('mph').textContent   = mph.toFixed(1)  + ' mph';
+          document.getElementById('knots').textContent = knots.toFixed(1)+ ' kt';
+        }
+
+        lastPos = { lat: latitude, lon: longitude, time: now };
+      }, err => {
+        alert('Geolocation error: ' + err.message);
+      }, {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 10000
+      });
+    } else {
+      alert('Geolocation not supported');
+    }
+  </script>
+</body>
+</html>
