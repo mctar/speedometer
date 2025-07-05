@@ -5,23 +5,46 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Speedometer</title>
   <style>
-    body { 
-      display: flex; 
-      flex-direction: column; 
-      align-items: center; 
-      justify-content: center; 
-      height: 100vh; 
-      margin: 0; 
-      font-family: sans-serif; 
-      background: #111; 
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      font-family: sans-serif;
+      background: #111;
       color: #fff;
     }
-    h1 { margin-bottom: 1rem; }
-    .speed { font-size: 2rem; margin: 0.5rem 0; }
+    header {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    #logo {
+      width: 64px;
+      height: auto;
+    }
+    .tagline {
+      font-size: 0.8rem;
+      color: #888;
+      margin-top: 0.25rem;
+    }
+    h1 {
+      margin: 0 0 1rem;
+    }
+    .speed {
+      font-size: 2rem;
+      margin: 0.5rem 0;
+    }
   </style>
 </head>
 <body>
-  <h1>Speed (live)</h1>
+  <header>
+    <img src="logo.png" alt="Gervi.ai logo" id="logo" />
+    <div class="tagline">gervi.ai</div>
+  </header>
+
+  <h1>Live speed</h1>
   <div id="kph" class="speed">-- km/h</div>
   <div id="mph" class="speed">-- mph</div>
   <div id="knots" class="speed">-- kt</div>
@@ -33,7 +56,7 @@
       const R = 6371000; // Earth radius in m
       const dLat = toRad(lat2 - lat1);
       const dLon = toRad(lon2 - lon1);
-      const a = Math.sin(dLat/2)**2 
+      const a = Math.sin(dLat/2)**2
               + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))
               * Math.sin(dLon/2)**2;
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
@@ -43,27 +66,25 @@
 
     if ('geolocation' in navigator) {
       navigator.geolocation.watchPosition(pos => {
-        const { latitude, longitude, timestamp } = pos.coords ? 
-          { latitude: pos.coords.latitude, longitude: pos.coords.longitude } :
-          { latitude: pos.latitude, longitude: pos.longitude };
+        const { latitude, longitude } = pos.coords;
         const now = pos.timestamp;
 
         if (lastPos) {
           const dt = (now - lastPos.time) / 1000;        // seconds
           const dist = haversine(
-            [lastPos.lat, lastPos.lon], 
+            [lastPos.lat, lastPos.lon],
             [latitude, longitude]
           );                                             // meters
           const mps = dist / dt;                         // m/s
-          
+
           // convert
-          const kph  = mps * 3.6;
-          const mph  = mps * 2.23694;
-          const knots= mps * 1.94384;
-          
-          document.getElementById('kph').textContent   = kph.toFixed(1)  + ' km/h';
-          document.getElementById('mph').textContent   = mph.toFixed(1)  + ' mph';
-          document.getElementById('knots').textContent = knots.toFixed(1)+ ' kt';
+          const kph   = mps * 3.6;
+          const mph   = mps * 2.23694;
+          const knots = mps * 1.94384;
+
+          document.getElementById('kph').textContent   = kph.toFixed(1)   + ' km/h';
+          document.getElementById('mph').textContent   = mph.toFixed(1)   + ' mph';
+          document.getElementById('knots').textContent = knots.toFixed(1) + ' kt';
         }
 
         lastPos = { lat: latitude, lon: longitude, time: now };
