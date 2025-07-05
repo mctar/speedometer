@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Speedometer</title>
+  <title>Speedometer Prototype</title>
   <style>
     body {
       display: flex;
@@ -13,7 +13,7 @@
       height: 100vh;
       margin: 0;
       font-family: sans-serif;
-      background: #111;
+      background: #000;      /* solid black */
       color: #fff;
     }
     header {
@@ -21,13 +21,19 @@
       margin-bottom: 1rem;
     }
     #logo {
-      width: 64px;
-      height: auto;
+      width: 80px;           /* increased size */
+      height: 80px;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto 0.25rem;
     }
     .tagline {
       font-size: 0.8rem;
       color: #888;
-      margin-top: 0.25rem;
+      text-decoration: none;
+    }
+    .tagline:hover {
+      text-decoration: underline;
     }
     h1 {
       margin: 0 0 1rem;
@@ -40,8 +46,10 @@
 </head>
 <body>
   <header>
-    <img src="logo.png" alt="Gervi.ai logo" id="logo" />
-    <div class="tagline">gervi.ai</div>
+    <img src="logo.png" alt="gervi.ai hare logo" id="logo" />
+    <a href="https://gervi.ai" target="_blank" rel="noopener noreferrer" class="tagline">
+      gervi.ai
+    </a>
   </header>
 
   <h1>Live speed</h1>
@@ -50,43 +58,30 @@
   <div id="knots" class="speed">-- kt</div>
 
   <script>
-    // helper: calculate distance (meters) between two lat/lon pairs
     function haversine([lat1, lon1], [lat2, lon2]) {
       const toRad = x => x * Math.PI/180;
-      const R = 6371000; // Earth radius in m
+      const R = 6371000;
       const dLat = toRad(lat2 - lat1);
       const dLon = toRad(lon2 - lon1);
       const a = Math.sin(dLat/2)**2
-              + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))
+              + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2))
               * Math.sin(dLon/2)**2;
-      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
     let lastPos = null;
-
     if ('geolocation' in navigator) {
       navigator.geolocation.watchPosition(pos => {
         const { latitude, longitude } = pos.coords;
         const now = pos.timestamp;
-
         if (lastPos) {
-          const dt = (now - lastPos.time) / 1000;        // seconds
-          const dist = haversine(
-            [lastPos.lat, lastPos.lon],
-            [latitude, longitude]
-          );                                             // meters
-          const mps = dist / dt;                         // m/s
-
-          // convert
-          const kph   = mps * 3.6;
-          const mph   = mps * 2.23694;
-          const knots = mps * 1.94384;
-
-          document.getElementById('kph').textContent   = kph.toFixed(1)   + ' km/h';
-          document.getElementById('mph').textContent   = mph.toFixed(1)   + ' mph';
-          document.getElementById('knots').textContent = knots.toFixed(1) + ' kt';
+          const dt   = (now - lastPos.time) / 1000;
+          const dist = haversine([lastPos.lat, lastPos.lon], [latitude, longitude]);
+          const mps  = dist / dt;
+          document.getElementById('kph').textContent   = (mps * 3.6).toFixed(1)   + ' km/h';
+          document.getElementById('mph').textContent   = (mps * 2.23694).toFixed(1)+ ' mph';
+          document.getElementById('knots').textContent = (mps * 1.94384).toFixed(1)+ ' kt';
         }
-
         lastPos = { lat: latitude, lon: longitude, time: now };
       }, err => {
         alert('Geolocation error: ' + err.message);
