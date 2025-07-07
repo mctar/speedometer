@@ -13,7 +13,7 @@
       height: 100vh;
       margin: 0;
       font-family: sans-serif;
-      background: #000;      /* solid black */
+      background: #000;
       color: #fff;
     }
     header {
@@ -21,7 +21,7 @@
       margin-bottom: 1rem;
     }
     #logo {
-      width: 80px;           /* increased size */
+      width: 80px;
       height: 80px;
       object-fit: contain;
       display: block;
@@ -58,30 +58,53 @@
   <div id="knots" class="speed">-- kt</div>
 
   <script>
+    // haversine to compute meters between two lat/lon points
     function haversine([lat1, lon1], [lat2, lon2]) {
-      const toRad = x => x * Math.PI/180;
-      const R = 6371000;
+      const toRad = x => x * Math.PI / 180;
+      const R = 6371000; // earth radius in meters
       const dLat = toRad(lat2 - lat1);
       const dLon = toRad(lon2 - lon1);
-      const a = Math.sin(dLat/2)**2
+      const a = Math.sin(dLat/2)**2 
               + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2))
               * Math.sin(dLon/2)**2;
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
     let lastPos = null;
+    let smoothedMps = 0;
+    const alpha = 0.2;     // smoothing factor (0 < α < 1)
+
     if ('geolocation' in navigator) {
       navigator.geolocation.watchPosition(pos => {
         const { latitude, longitude } = pos.coords;
         const now = pos.timestamp;
+
         if (lastPos) {
-          const dt   = (now - lastPos.time) / 1000;
-          const dist = haversine([lastPos.lat, lastPos.lon], [latitude, longitude]);
-          const mps  = dist / dt;
-          document.getElementById('kph').textContent   = (mps * 3.6).toFixed(1)   + ' km/h';
-          document.getElementById('mph').textContent   = (mps * 2.23694).toFixed(1)+ ' mph';
-          document.getElementById('knots').textContent = (mps * 1.94384).toFixed(1)+ ' kt';
+          const dt = (now - lastPos.time) / 1000;        // seconds
+          if (dt > 0.1) {  // ignore extremely small intervals
+            const dist = haversine(
+              [lastPos.lat, lastPos.lon],
+              [latitude, longitude]
+            );                                             // meters
+            let mps = dist / dt;                          // raw meters/sec
+
+            // exponential smoothing
+            smoothedMps = alpha * mps + (1 - alpha) * smoothedMps;
+
+            // convert
+            const kph   = smoothedMps * 3.6;
+            const mph   = smoothedMps * 2.23694;
+            const knots = smoothedMps * 1.94384;
+
+            document.getElementById('kph').textContent   = kph.toFixed(1)   + ' km/h';
+            document.getElementById('mph').textContent   = mph.toFixed(1)   + ' mph';
+            document.getElementById('knots').textContent = knots.toFixed(1) + ' kt';
+          }
+        } else {
+          // first value: initialize smoothing buffer
+          smoothedMps = 0;
         }
+
         lastPos = { lat: latitude, lon: longitude, time: now };
       }, err => {
         alert('Geolocation error: ' + err.message);
